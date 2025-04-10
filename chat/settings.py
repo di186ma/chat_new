@@ -1,6 +1,6 @@
-
 from pathlib import Path
 from datetime import timedelta
+import os
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -146,13 +146,13 @@ CORS_ALLOW_HEADERS = [
     'x-requested-with',
 ]
 
+# Настройки Channels
 ASGI_APPLICATION = 'chat.asgi.application'
-
 CHANNEL_LAYERS = {
-    "default": {
-        "BACKEND": "channels_redis.core.RedisChannelLayer",
-        "CONFIG": {
-            "hosts": [("127.0.0.1", 6379)],
+    'default': {
+        'BACKEND': 'channels_redis.core.RedisChannelLayer',
+        'CONFIG': {
+            "hosts": [(os.getenv('REDIS_HOST', 'localhost'), int(os.getenv('REDIS_PORT', 6380)))],
         },
     },
 }
