@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from .models import Room, Message
 from .serializers import RoomSerializer, MessageSerializer, UserSerializer, RegisterSerializer
 import logging
+from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -103,14 +105,16 @@ class CurrentUserView(generics.RetrieveAPIView):
     def get_object(self):
         return self.request.user
 
-class MessageList(generics.ListCreateAPIView):
-    serializer_class = MessageSerializer
-    permission_classes = [permissions.IsAuthenticated]
+class MessageList(APIView):
+    permission_classes = [IsAuthenticated]
 
-    def get_queryset(self):
-        room_id = self.kwargs['room_id']
-        return Message.objects.filter(room_id=room_id)
-
-    def perform_create(self, serializer):
-        room_id = self.kwargs['room_id']
-        serializer.save(user=self.request.user, room_id=room_id) 
+    def get(self, request):
+        logger.info(f"Getting messages. User: {request.user}")
+        try:
+            messages = Message.objects.all().order_by('-created_at')
+            serializer = MessageSerializer(messages, many=True)
+            logger.info(f"Found {len(messages)} messages")
+            return Response(serializer.data)
+        except Exception as e:
+            logger.error(f"Error getting messages: {e}")
+            return Response({"error": str(e)}, status=500) 

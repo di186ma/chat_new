@@ -10,5 +10,5 @@ urlpatterns = [
     path('api/user/', views.CurrentUserView.as_view(), name='current-user'),
     path('api/rooms/', views.RoomList.as_view(), name='room-list'),
     path('api/rooms/<int:pk>/', views.RoomDetail.as_view(), name='room-detail'),
-    path('api/rooms/<int:room_id>/messages/', views.MessageList.as_view(), name='message-list'),
+    path('api/messages/', views.MessageList.as_view(), name='message-list'),
 ] 

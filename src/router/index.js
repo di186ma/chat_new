@@ -3,8 +3,9 @@ import { useStore } from 'vuex';
 
 import Login from '../components/Login.vue';
 import Register from '../components/Register.vue';
-import Rooms from '../components/Rooms.vue';
 import Chat from '../components/Chat.vue';
+import RoomList from '../components/RoomList.vue';
+import DataTablePage from '../components/DataTablePage.vue';
 
 const routes = [
   {
@@ -19,8 +20,8 @@ const routes = [
   },
   {
     path: '/rooms',
-    name: 'Rooms',
-    component: Rooms,
+    name: 'RoomList',
+    component: RoomList,
     meta: { requiresAuth: true }
   },
   {
@@ -32,6 +33,12 @@ const routes = [
   {
     path: '/',
     redirect: '/rooms'
+  },
+  {
+    path: '/data',
+    name: 'DataTable',
+    component: DataTablePage,
+    meta: { requiresAuth: true }
   }
 ];
 
@@ -40,12 +47,17 @@ const router = createRouter({
   routes
 });
 
+// Навигационный guard для проверки аутентификации
 router.beforeEach((to, from, next) => {
   const store = useStore();
-  const isAuthenticated = store.getters.isAuthenticated;
+  const isAuthenticated = store.state.token;
 
-  if (to.meta.requiresAuth && !isAuthenticated) {
-    next('/login');
+  if (to.matched.some(record => record.meta.requiresAuth)) {
+    if (!isAuthenticated) {
+      next('/login');
+    } else {
+      next();
+    }
   } else {
     next();
   }
