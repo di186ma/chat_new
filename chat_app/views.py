@@ -1,4 +1,4 @@
-from rest_framework import generics, permissions, status
+from rest_framework import generics, permissions, status, filters
 from rest_framework.response import Response
 from rest_framework_simplejwt.tokens import RefreshToken
 from django.contrib.auth import authenticate
@@ -8,6 +8,7 @@ from .serializers import RoomSerializer, MessageSerializer, UserSerializer, Regi
 import logging
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from django_filters.rest_framework import DjangoFilterBackend
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -98,23 +99,19 @@ class RoomDetail(generics.RetrieveAPIView):
     serializer_class = RoomSerializer
     permission_classes = [permissions.IsAuthenticated]
 
-class CurrentUserView(generics.RetrieveAPIView):
-    serializer_class = UserSerializer
+class MessageList(generics.ListCreateAPIView):
+    queryset = Message.objects.all()
+    serializer_class = MessageSerializer
     permission_classes = [permissions.IsAuthenticated]
+    filter_backends = [DjangoFilterBackend]
+    filterset_fields = ['room']
 
-    def get_object(self):
-        return self.request.user
+    def get_queryset(self):
+        queryset = Message.objects.all()
+        room_id = self.request.query_params.get('room', None)
+        if room_id is not None:
+            queryset = queryset.filter(room_id=room_id)
+        return queryset.order_by('timestamp')
 
-class MessageList(APIView):
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        logger.info(f"Getting messages. User: {request.user}")
-        try:
-            messages = Message.objects.all().order_by('-created_at')
-            serializer = MessageSerializer(messages, many=True)
-            logger.info(f"Found {len(messages)} messages")
-            return Response(serializer.data)
-        except Exception as e:
-            logger.error(f"Error getting messages: {e}")
-            return Response({"error": str(e)}, status=500) 
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user) 

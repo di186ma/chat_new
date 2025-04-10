@@ -7,12 +7,14 @@ export default createStore({
   state: {
     token: localStorage.getItem('token') || null,
     user: JSON.parse(localStorage.getItem('user')) || null,
+    rooms: [],
     error: null
   },
   getters: {
     isAuthenticated: state => !!state.token,
     error: state => state.error,
-    user: state => state.user
+    user: state => state.user,
+    rooms: state => state.rooms
   },
   mutations: {
     setToken(state, token) {
@@ -36,18 +38,29 @@ export default createStore({
     },
     clearError(state) {
       state.error = null;
+    },
+    setRooms(state, rooms) {
+      state.rooms = rooms;
+    },
+    clearAuth(state) {
+      state.token = null;
+      state.user = null;
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
     }
   },
   actions: {
     async login({ commit }, credentials) {
       try {
         commit('clearError');
-        const response = await axios.post(`${API_URL}/login/`, credentials);
-        commit('setToken', response.data.access);
-        commit('setUser', response.data.user);
+        const response = await axios.post(`${API_URL}/token/`, credentials);
+        const { access, refresh, user } = response.data;
+        commit('setToken', access);
+        commit('setUser', user);
+        axios.defaults.headers.common['Authorization'] = `Bearer ${access}`;
         
         // Для отладки
-        console.log('Logged in user:', response.data.user);
+        console.log('Logged in user:', user);
         
         return response.data;
       } catch (error) {
@@ -58,18 +71,18 @@ export default createStore({
     async register({ commit }, userData) {
       try {
         commit('clearError');
-        await axios.post(`${API_URL}/register/`, userData);
+        const response = await axios.post(`${API_URL}/register/`, userData);
+        return response.data;
       } catch (error) {
         commit('setError', error.response?.data?.error || 'Ошибка регистрации');
         throw error;
       }
     },
     logout({ commit }) {
-      commit('clearToken');
-      commit('clearUser');
-      commit('clearError');
+      commit('clearAuth');
+      delete axios.defaults.headers.common['Authorization'];
     },
-    async fetchRooms({ commit }) {
+    async loadRooms({ commit }) {
       try {
         commit('clearError');
         const response = await axios.get(`${API_URL}/rooms/`, {
@@ -77,7 +90,8 @@ export default createStore({
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-        return response.data;
+        commit('setRooms', response.data);
+        return response;
       } catch (error) {
         commit('setError', error.response?.data?.error || 'Ошибка загрузки комнат');
         throw error;
@@ -86,14 +100,13 @@ export default createStore({
     async createRoom({ commit, dispatch }, roomName) {
       try {
         commit('clearError');
-        await axios.post(`${API_URL}/rooms/`, {
-          name: roomName
-        }, {
+        const response = await axios.post(`${API_URL}/rooms/`, { name: roomName }, {
           headers: {
             Authorization: `Bearer ${localStorage.getItem('token')}`
           }
         });
-        return dispatch('fetchRooms');
+        await dispatch('loadRooms');
+        return response.data;
       } catch (error) {
         commit('setError', error.response?.data?.error || 'Ошибка создания комнаты');
         throw error;

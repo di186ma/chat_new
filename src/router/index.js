@@ -9,13 +9,18 @@ import DataTablePage from '../components/DataTablePage.vue';
 
 const routes = [
   {
+    path: '/',
+    name: 'home',
+    component: RoomList
+  },
+  {
     path: '/login',
-    name: 'Login',
+    name: 'login',
     component: Login
   },
   {
     path: '/register',
-    name: 'Register',
+    name: 'register',
     component: Register
   },
   {
@@ -26,8 +31,9 @@ const routes = [
   },
   {
     path: '/chat/:roomName',
-    name: 'Chat',
+    name: 'chat',
     component: Chat,
+    props: true,
     meta: { requiresAuth: true }
   },
   {
@@ -36,9 +42,8 @@ const routes = [
   },
   {
     path: '/data',
-    name: 'DataTable',
-    component: DataTablePage,
-    meta: { requiresAuth: true }
+    name: 'data',
+    component: DataTablePage
   }
 ];
 

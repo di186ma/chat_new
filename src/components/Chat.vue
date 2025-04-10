@@ -28,15 +28,20 @@ import Button from 'primevue/button';
 import axios from 'axios';
 
 export default {
+  name: 'Chat',
   components: {
     Card,
     InputText,
     Button
   },
-  setup() {
-    const route = useRoute();
+  props: {
+    roomName: {
+      type: String,
+      required: true
+    }
+  },
+  setup(props) {
     const store = useStore();
-    const roomName = route.params.roomName;
     const messages = ref([]);
     const newMessage = ref('');
     const messagesContainer = ref(null);
@@ -63,10 +68,10 @@ export default {
           }
         });
         
-        const room = roomsResponse.data.find(r => r.name === roomName);
+        const room = roomsResponse.data.find(r => r.name === props.roomName);
         
         if (room) {
-          const messagesResponse = await axios.get(`http://localhost:8000/api/rooms/${room.id}/messages/`, {
+          const messagesResponse = await axios.get(`http://localhost:8000/api/messages/?room=${room.id}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -89,7 +94,7 @@ export default {
 
     const connectWebSocket = () => {
       const token = localStorage.getItem('token');
-      socket = new WebSocket(`ws://localhost:8000/ws/chat/${roomName}/?token=${token}`);
+      socket = new WebSocket(`ws://localhost:8000/ws/chat/${props.roomName}/?token=${token}`);
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -99,6 +104,7 @@ export default {
 
       socket.onclose = () => {
         console.log('WebSocket connection closed');
+        setTimeout(connectWebSocket, 1000);
       };
 
       socket.onerror = (error) => {
@@ -107,7 +113,9 @@ export default {
     };
 
     const sendMessage = () => {
-      if (newMessage.value.trim() && socket) {
+      if (!newMessage.value.trim()) return;
+      
+      if (socket && socket.readyState === WebSocket.OPEN) {
         socket.send(JSON.stringify({
           message: newMessage.value
         }));
@@ -127,12 +135,11 @@ export default {
     });
 
     return {
-      roomName,
       messages,
       newMessage,
       messagesContainer,
-      sendMessage,
-      currentUsername
+      currentUsername,
+      sendMessage
     };
   }
 };
@@ -140,36 +147,38 @@ export default {
 
 <style scoped>
 .chat-container {
-  padding: 2rem;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
 }
 
 .messages-container {
   height: 400px;
   overflow-y: auto;
-  margin-bottom: 1rem;
-  padding: 1rem;
-  border: 1px solid #dee2e6;
-  border-radius: 6px;
+  margin-bottom: 20px;
+  padding: 10px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
 }
 
 .message {
-  margin-bottom: 0.5rem;
-  padding: 0.5rem;
+  margin-bottom: 10px;
+  padding: 8px;
   border-radius: 4px;
-  background-color: #f8f9fa;
+  background-color: #f5f5f5;
 }
 
 .my-message {
-  background-color: #e7f3ff;
-  text-align: right;
+  background-color: #e3f2fd;
+  margin-left: 20%;
 }
 
 .input-container {
   display: flex;
-  gap: 0.5rem;
+  gap: 10px;
 }
 
-.input-container .p-inputtext {
+.input-container input {
   flex: 1;
 }
 </style> 
