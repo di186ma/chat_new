@@ -1,12 +1,21 @@
 import { createStore } from 'vuex';
 import axios from 'axios';
 
-const API_URL = 'http://localhost:8000/api';
+const API_URL = '/api';
 
 export default createStore({
   state: {
     token: localStorage.getItem('token') || null,
-    user: JSON.parse(localStorage.getItem('user')) || null,
+    user: (() => {
+      try {
+        const userData = localStorage.getItem('user');
+        return userData ? JSON.parse(userData) : null;
+      } catch (e) {
+        console.error('Ошибка при парсинге данных пользователя:', e);
+        localStorage.removeItem('user');
+        return null;
+      }
+    })(),
     rooms: [],
     error: null
   },

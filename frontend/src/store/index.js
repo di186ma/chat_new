@@ -2,10 +2,11 @@ import { createStore } from 'vuex'
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8000',
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
-  }
+  },
+  withCredentials: true
 })
 
 api.interceptors.request.use(
@@ -61,7 +62,7 @@ export default createStore({
   actions: {
     async register({ commit }, { username, password, password2 }) {
       try {
-        const response = await api.post('/api/register/', {
+        const response = await api.post('/register/', {
           username,
           password,
           password2
@@ -76,7 +77,7 @@ export default createStore({
     },
     async login({ commit }, { username, password }) {
       try {
-        const response = await api.post('/api/login/', {
+        const response = await api.post('/token/', {
           username,
           password
         })
@@ -90,7 +91,7 @@ export default createStore({
     },
     async fetchRooms({ commit }) {
       try {
-        const response = await api.get('/api/rooms/')
+        const response = await api.get('/rooms/')
         commit('setRooms', response.data)
       } catch (error) {
         console.error('Failed to load rooms:', error)
@@ -99,7 +100,7 @@ export default createStore({
     },
     async createRoom({ commit }, roomName) {
       try {
-        const response = await api.post('/api/rooms/', { name: roomName })
+        const response = await api.post('/rooms/', { name: roomName })
         commit('addRoom', response.data)
         return response.data
       } catch (error) {
@@ -109,7 +110,7 @@ export default createStore({
     },
     async fetchMessages({ commit }, roomId) {
       try {
-        const response = await api.get(`/api/rooms/${roomId}/messages/`)
+        const response = await api.get(`/rooms/${roomId}/messages/`)
         commit('setMessages', response.data)
       } catch (error) {
         console.error('Failed to load messages:', error)
@@ -118,7 +119,7 @@ export default createStore({
     },
     async sendMessage({ commit }, { roomId, content }) {
       try {
-        const response = await api.post(`/api/rooms/${roomId}/messages/`, { content })
+        const response = await api.post(`/rooms/${roomId}/messages/`, { content })
         commit('addMessage', response.data)
         return response.data
       } catch (error) {
@@ -131,7 +132,7 @@ export default createStore({
         state.socket.close()
       }
       
-      const socket = new WebSocket(`ws://localhost:8000/ws/chat/${roomName}/?token=${state.token}`)
+      const socket = new WebSocket(`ws://${window.location.host}/ws/chat/${roomName}/?token=${state.token}`)
       
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data)

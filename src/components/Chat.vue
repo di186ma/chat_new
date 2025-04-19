@@ -62,7 +62,7 @@ export default {
     const loadMessages = async () => {
       try {
         // Получаем ID комнаты по имени
-        const roomsResponse = await axios.get('http://localhost:8000/api/rooms/', {
+        const roomsResponse = await axios.get('/api/rooms/', {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -71,7 +71,7 @@ export default {
         const room = roomsResponse.data.find(r => r.name === props.roomName);
         
         if (room) {
-          const messagesResponse = await axios.get(`http://localhost:8000/api/messages/?room=${room.id}`, {
+          const messagesResponse = await axios.get(`/api/messages/?room=${room.id}`, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
@@ -94,7 +94,16 @@ export default {
 
     const connectWebSocket = () => {
       const token = localStorage.getItem('token');
-      socket = new WebSocket(`ws://localhost:8000/ws/chat/${props.roomName}/?token=${token}`);
+      // Используем window.location.host для получения текущего хоста
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${wsProtocol}//${window.location.host}/ws/chat/${props.roomName}/?token=${token}`;
+      console.log('Connecting to WebSocket:', wsUrl);
+
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        console.log('WebSocket connection established');
+      };
 
       socket.onmessage = (event) => {
         const data = JSON.parse(event.data);
@@ -102,8 +111,8 @@ export default {
         scrollToBottom();
       };
 
-      socket.onclose = () => {
-        console.log('WebSocket connection closed');
+      socket.onclose = (event) => {
+        console.log('WebSocket connection closed', event.code, event.reason);
         setTimeout(connectWebSocket, 1000);
       };
 

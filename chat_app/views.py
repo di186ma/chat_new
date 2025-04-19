@@ -45,6 +45,14 @@ class RegisterView(generics.CreateAPIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
+class CurrentUserView(APIView):
+    permission_classes = [IsAuthenticated]
+    
+    def get(self, request):
+        logger.info(f"Getting current user info. User: {request.user}")
+        serializer = UserSerializer(request.user)
+        return Response(serializer.data)
+
 class LoginView(generics.GenericAPIView):
     permission_classes = [permissions.AllowAny]
     serializer_class = UserSerializer
@@ -111,7 +119,7 @@ class MessageList(generics.ListCreateAPIView):
         room_id = self.request.query_params.get('room', None)
         if room_id is not None:
             queryset = queryset.filter(room_id=room_id)
-        return queryset.order_by('timestamp')
+        return queryset.order_by('created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user) 
